@@ -16,7 +16,7 @@ from freqtrade.configuration.config_validation import validate_migrated_strategy
 from freqtrade.constants import REQUIRED_ORDERTIF, REQUIRED_ORDERTYPES, USERPATH_STRATEGIES, Config
 from freqtrade.enums import TradingMode
 from freqtrade.exceptions import OperationalException
-from freqtrade.resolvers import IResolver
+from freqtrade.resolvers.iresolver import IResolver
 from freqtrade.strategy.interface import IStrategy
 
 
@@ -79,7 +79,7 @@ class StrategyResolver(IResolver):
             ("ignore_buying_expired_candle_after", 0),
             ("position_adjustment_enable", False),
             ("max_entry_position_adjustment", -1),
-            ("max_open_trades", -1),
+            ("max_open_trades", float("inf")),
         ]
         for attribute, default in attributes:
             StrategyResolver._override_attribute_helper(strategy, config, attribute, default)
@@ -242,6 +242,14 @@ class StrategyResolver(IResolver):
         if has_after_fill:
             strategy._ft_stop_uses_after_fill = True
 
+        if check_override(strategy, IStrategy, "adjust_order_price") and (
+            check_override(strategy, IStrategy, "adjust_entry_price")
+            or check_override(strategy, IStrategy, "adjust_exit_price")
+        ):
+            raise OperationalException(
+                "If you implement `adjust_order_price`, `adjust_entry_price` and "
+                "`adjust_exit_price` will not be used. Please pick one approach for your strategy."
+            )
         return strategy
 
     @staticmethod

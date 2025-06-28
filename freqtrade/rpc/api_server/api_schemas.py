@@ -5,7 +5,7 @@ from pydantic import AwareDatetime, BaseModel, RootModel, SerializeAsAny, model_
 
 from freqtrade.constants import DL_DATA_TIMEFRAMES, IntOrInf
 from freqtrade.enums import MarginMode, OrderTypeValues, SignalDirection, TradingMode
-from freqtrade.ft_types import ValidExchangesType
+from freqtrade.ft_types import AnnotationType, ValidExchangesType
 from freqtrade.rpc.api_server.webserver_bgwork import ProgressTask
 
 
@@ -524,10 +524,11 @@ class PairCandlesRequest(BaseModel):
     columns: list[str] | None = None
 
 
-class PairHistoryRequest(PairCandlesRequest):
+class PairHistoryRequest(PairCandlesRequest, ExchangeModePayloadMixin):
     timerange: str
-    strategy: str
+    strategy: str | None = None
     freqaimodel: str | None = None
+    live_mode: bool = False
 
 
 class PairHistory(BaseModel):
@@ -538,6 +539,7 @@ class PairHistory(BaseModel):
     columns: list[str]
     all_columns: list[str] = []
     data: SerializeAsAny[list[Any]]
+    annotations: list[AnnotationType] | None = None
     length: int
     buy_signals: int
     sell_signals: int
@@ -606,6 +608,24 @@ class BacktestMarketChange(BaseModel):
     data: list[list[Any]]
 
 
+class MarketRequest(ExchangeModePayloadMixin, BaseModel):
+    base: str | None = None
+    quote: str | None = None
+
+
+class MarketModel(BaseModel):
+    symbol: str
+    base: str
+    quote: str
+    spot: bool
+    swap: bool
+
+
+class MarketResponse(BaseModel):
+    markets: dict[str, MarketModel]
+    exchange_id: str
+
+
 class SysInfo(BaseModel):
     cpu_pct: list[float]
     ram_pct: float
@@ -618,3 +638,16 @@ class Health(BaseModel):
     bot_start_ts: int | None = None
     bot_startup: datetime | None = None
     bot_startup_ts: int | None = None
+
+
+class CustomDataEntry(BaseModel):
+    key: str
+    type: str
+    value: Any
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
+class ListCustomData(BaseModel):
+    trade_id: int
+    custom_data: list[CustomDataEntry]

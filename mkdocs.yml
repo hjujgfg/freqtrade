@@ -52,7 +52,6 @@ nav:
         - Orderflow: advanced-orderflow.md
         - Producer/Consumer mode: producer-consumer.md
         - SQL Cheat-sheet: sql_cheatsheet.md
-        - Edge Positioning: edge.md
     - FAQ: faq.md
     - Strategy migration: strategy_migration.md
     - Updating Freqtrade: updating.md
@@ -86,8 +85,10 @@ extra_css:
   - "stylesheets/ft.extra.css"
 extra_javascript:
   - javascripts/config.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+exclude_docs: |
+    /commands/*
+    /includes/*
 markdown_extensions:
   - attr_list
   - admonition

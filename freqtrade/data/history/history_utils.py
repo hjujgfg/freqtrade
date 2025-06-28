@@ -18,8 +18,7 @@ from freqtrade.enums import CandleType, TradingMode
 from freqtrade.exceptions import OperationalException
 from freqtrade.exchange import Exchange
 from freqtrade.plugins.pairlist.pairlist_helpers import dynamic_expand_pairlist
-from freqtrade.util import dt_now, dt_ts, format_ms_time
-from freqtrade.util.datetime_helpers import format_ms_time_det
+from freqtrade.util import dt_now, dt_ts, format_ms_time, format_ms_time_det
 from freqtrade.util.migrations import migrate_data
 from freqtrade.util.progress_tracker import CustomProgress, retrieve_progress_tracker
 
@@ -117,7 +116,7 @@ def load_data(
             result[pair] = hist
         else:
             if candle_type is CandleType.FUNDING_RATE and user_futures_funding_rate is not None:
-                logger.warn(f"{pair} using user specified [{user_futures_funding_rate}]")
+                logger.warning(f"{pair} using user specified [{user_futures_funding_rate}]")
             elif candle_type not in (CandleType.SPOT, CandleType.FUTURES):
                 result[pair] = DataFrame(columns=["date", "open", "close", "high", "low", "volume"])
 
