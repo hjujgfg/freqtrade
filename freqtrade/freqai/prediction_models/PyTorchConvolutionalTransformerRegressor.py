@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 import numpy as np
@@ -14,11 +13,10 @@ from freqtrade.freqai.torch.PyTorchDataConvertor import (
     PyTorchDataConvertor,
 )
 from freqtrade.freqai.torch.PyTorchModelTrainer import PyTorchTransformerTrainer
+from freqtrade.freqai.torch.PyTorchTransformerModel import PyTorchTransformerModel
 
-logger = logging.getLogger(__name__)
 
-
-class PyTorchTransformerRegressor(BasePyTorchRegressor):
+class PyTorchTransformerRegressorTMP(BasePyTorchRegressor):
     """
     This class implements the fit method of IFreqaiModel.
     in the fit method we initialize the model and trainer objects.
@@ -77,7 +75,6 @@ class PyTorchTransformerRegressor(BasePyTorchRegressor):
         n_features = data_dictionary["train_features"].shape[-1]
         n_labels = data_dictionary["train_labels"].shape[-1]
         model = PyTorchConvolutionalTransformerModel(
-            # model = PyTorchTransformerModel(
             input_dim=n_features,
             output_dim=n_labels,
             time_window=self.window_size,
@@ -85,10 +82,8 @@ class PyTorchTransformerRegressor(BasePyTorchRegressor):
         )
         model.to(self.device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.learning_rate)
-        logger.info("Regressor: before creating MSELoss")
-        criterion = torch.nn.MSELoss()
-        logger.info("Regressor: after creating MSELoss")
-        # criterion = torch.nn.SmoothL1Loss()
+        # criterion = torch.nn.MSELoss()
+        criterion = torch.nn.SmoothL1Loss()
         # check if continual_learning is activated, and retrieve the model to continue training
         trainer = self.get_init_model(dk.pair)
         if trainer is None:
@@ -106,7 +101,7 @@ class PyTorchTransformerRegressor(BasePyTorchRegressor):
         return trainer
 
     def predict(
-            self, unfiltered_df: pd.DataFrame, dk: FreqaiDataKitchen, **kwargs
+        self, unfiltered_df: pd.DataFrame, dk: FreqaiDataKitchen, **kwargs
     ) -> tuple[pd.DataFrame, npt.NDArray[np.int_]]:
         """
         Filter the prediction features data and predict with it.
@@ -135,12 +130,10 @@ class PyTorchTransformerRegressor(BasePyTorchRegressor):
         # create empty torch tensor
         self.model.model.eval()
         yb = torch.empty(0).to(self.device)
-
-        logger.info(f"Regressor, x shape: {x.shape}, window:  {self.window_size}")
         if x.shape[1] > self.window_size:
             ws = self.window_size
             for i in range(0, x.shape[1] - ws):
-                xb = x[:, i: i + ws, :].to(self.device)
+                xb = x[:, i : i + ws, :].to(self.device)
                 y = self.model.model(xb)
                 yb = torch.cat((yb, y), dim=1)
         else:

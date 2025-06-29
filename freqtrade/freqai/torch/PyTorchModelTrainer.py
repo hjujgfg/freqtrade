@@ -83,23 +83,31 @@ class PyTorchModelTrainer(PyTorchTrainerInterface):
         n_obs = len(data_dictionary["train_features"])
         n_epochs = self.n_epochs or self.calc_n_epochs(n_obs=n_obs)
         batch_counter = 0
-        for _ in range(n_epochs):
+        logger.info("Before starting epochs")
+        for epoch in range(n_epochs):
+            epoch_loss = 0
             for _, batch_data in enumerate(data_loaders_dictionary["train"]):
                 xb, yb = batch_data
                 xb = xb.to(self.device)
                 yb = yb.to(self.device)
                 yb_pred = self.model(xb)
+                # logger.info(f"BEFORE criterion, pred: {yb_pred.shape}, yb: {yb.shape}")
                 loss = self.criterion(yb_pred, yb)
+                # logger.info("AFTER criterion")
 
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 self.optimizer.step()
                 self.tb_logger.log_scalar("train_loss", loss.item(), batch_counter)
                 batch_counter += 1
+                epoch_loss += loss.item()
 
             # evaluation
             if "test" in splits:
                 self.estimate_loss(data_loaders_dictionary, "test")
+
+            logger.info(
+                f"Epoch {epoch + 1}/{n_epochs} - Train Loss: {epoch_loss / len(data_loaders_dictionary['train']):.4f}")
 
     @torch.no_grad()
     def estimate_loss(
@@ -211,6 +219,7 @@ class PyTorchTransformerTrainer(PyTorchModelTrainer):
         for split in splits:
             x = self.data_convertor.convert_x(data_dictionary[f"{split}_features"], self.device)
             y = self.data_convertor.convert_y(data_dictionary[f"{split}_labels"], self.device)
+            logger.info(f"INSIDE SPLITS: {x.shape}, {y.shape}")
             dataset = WindowDataset(x, y, self.window_size)
             data_loader = DataLoader(
                 dataset,
