@@ -85,10 +85,10 @@ class PyTorchTransformerRegressor(BasePyTorchRegressor):
         )
         model.to(self.device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.learning_rate)
-        logger.info("Regressor: before creating MSELoss")
-        criterion = torch.nn.MSELoss()
-        logger.info("Regressor: after creating MSELoss")
-        # criterion = torch.nn.SmoothL1Loss()
+        # logger.info("Regressor: before creating MSELoss")
+        # criterion = torch.nn.MSELoss()
+        # logger.info("Regressor: after creating MSELoss")
+        criterion = torch.nn.SmoothL1Loss()
         # check if continual_learning is activated, and retrieve the model to continue training
         trainer = self.get_init_model(dk.pair)
         if trainer is None:

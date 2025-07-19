@@ -87,7 +87,9 @@ class PyTorchModelTrainer(PyTorchTrainerInterface):
         for epoch in range(n_epochs):
             epoch_loss = 0
             for _, batch_data in enumerate(data_loaders_dictionary["train"]):
+
                 xb, yb = batch_data
+                # logger.info(f"Batch data: {xb.shape}\n\n{yb.shape}")
                 xb = xb.to(self.device)
                 yb = yb.to(self.device)
                 yb_pred = self.model(xb)
@@ -224,7 +226,7 @@ class PyTorchTransformerTrainer(PyTorchModelTrainer):
             data_loader = DataLoader(
                 dataset,
                 batch_size=self.batch_size,
-                shuffle=False,
+                shuffle=True,
                 drop_last=True,
                 num_workers=0,
             )

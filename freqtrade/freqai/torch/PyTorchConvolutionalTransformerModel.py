@@ -11,6 +11,7 @@ Lukasz Kaiser, and Illia Polosukhin. 2017.
 """
 logger = logging.getLogger(__name__)
 
+
 class PyTorchConvolutionalTransformerModel(nn.Module):
     """
     A transformer approach to time series modeling using positional encoding.
@@ -18,7 +19,6 @@ class PyTorchConvolutionalTransformerModel(nn.Module):
     Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez,
     Lukasz Kaiser, and Illia Polosukhin. 2017.
     """
-
 
     def __init__(
             self,
@@ -35,7 +35,10 @@ class PyTorchConvolutionalTransformerModel(nn.Module):
     ):
         super().__init__()
         self.time_window = time_window
-        logger.info('Setting up model')
+        logger.info(f'Setting up model with input_dim {input_dim}, outputdim: {output_dim}, '
+                    f'hiddendim: {hidden_dim}, n_layer: {n_layer}, droupout: {dropout_percent}, '
+                    f'time_window: {time_window}, nhead: {nhead}, d_model: {d_model}, cnn_filters: {cnn_filters},'
+                    f'kernel_size: {kernel_size}')
         self.conv = nn.Sequential(
             nn.Conv1d(in_channels=input_dim, out_channels=cnn_filters,
                       kernel_size=kernel_size, padding=(kernel_size - 1) // 2, bias=False),
@@ -58,17 +61,10 @@ class PyTorchConvolutionalTransformerModel(nn.Module):
 
         # the pseudo decoding FC
         self.output_net = nn.Sequential(
-            nn.Linear(d_model * time_window, int(hidden_dim)),
+            nn.Linear(d_model , int(hidden_dim)),
             nn.ReLU(),
             nn.Dropout(dropout_percent),
             nn.Linear(int(hidden_dim), output_dim),
-            # nn.Linear(int(hidden_dim), int(hidden_dim / 2)),
-            # nn.ReLU(),
-            # nn.Dropout(dropout_percent),
-            # nn.Linear(int(hidden_dim / 2), int(hidden_dim / 4)),
-            # nn.ReLU(),
-            # nn.Dropout(dropout_percent),
-            # nn.Linear(int(hidden_dim / 4), output_dim),
         )
         logger.info('DONE Setting up model')
 
@@ -80,21 +76,31 @@ class PyTorchConvolutionalTransformerModel(nn.Module):
             add_positional_encoding: If True, we add the positional encoding to the input.
                                       Might not be desired for some tasks.
         """
+        # logger.info(f'Model Input columns before transposing: {x.shape}')
         # logger.info('Starting forwarding')
         x = x.transpose(1, 2)  # → (batch, features, time_steps)
+        # logger.info(f'Model Input columns after transposing: {x.shape}')
         x = self.conv(x)
+        # logger.info(f'X columns before second transposing: {x.shape}')
         x = x.transpose(1, 2)  # → (batch, time_steps, d_model)
+        # logger.info(f'X columns after second transposing: {x.shape}')
 
         if add_positional_encoding:
             x = self.positional_encoding(x)
-        x = x.permute(1, 0, 2)
+        # logger.info(f'X columns after positional encoding: {x.shape}')
+        # x = x.permute(1, 0, 2)
+        # logger.info(f'X columns after permuting: {x.shape}')
         x = self.transformer(x, mask=mask)
-        x = x.reshape(-1, 1, self.time_window * x.shape[-1]) #  from the original model
+        # logger.info(f'X columns after transformer: {x.shape}')
+        # x = x.reshape(-1, 1, self.time_window * x.shape[-1])  # from the original model
+        x = x[:, -1, :]  # or x.mean(dim=1)
+        # logger.info(f'X columns after reshaping: {x.shape}')
         # x = x[-1] from the proposition to take only recent time????
         x = self.output_net(x)
-        res = x.squeeze(-1)
+        # logger.info(f'X columns after output net: {x.shape}')
+        res = x.unsqueeze(1)
         # logger.info(f'Finishing forwarding. Shape of x before squeeze: {x.shape}, after squeeze: {res.shape}')
-        return x
+        return res
 
 
 class PositionalEncoding(nn.Module):
